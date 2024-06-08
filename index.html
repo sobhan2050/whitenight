@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="fa">
+<head>
+    <meta charset="UTF-8">
+    <title>کنسرت</title>
+    <style>
+        .seat {
+            width: 30px;
+            height: 30px;
+            background-color: green;
+            margin: 5px;
+            display: inline-block;
+            text-align: center;
+            line-height: 30px;
+            color: white;
+            cursor: pointer;
+        }
+        .row {
+            display: flex;
+            justify-content: flex-end;
+        }
+        .sold {
+            background-color: red;
+        }
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px;
+        }
+        .save-button {
+            background-color: blue;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
+        .download-button {
+            background-color: purple;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="seating"></div>
+    <div class="button-container">
+        <button class="save-button" onclick="saveToCSV()">ذخیره در لیست</button>
+        <button class="download-button" onclick="downloadCSV()">دانلود فایل CSV</button>
+    </div>
+    <script>
+        const rows = 70;
+        const seatsPerRow = 10;
+        const seating = document.getElementById('seating');
+        const seats = [];
+
+        // Load seating data from localStorage
+        const savedSeatingData = JSON.parse(localStorage.getItem('seatingData')) || [];
+
+        for (let i = 0; i < rows; i++) {
+            const row = document.createElement('div');
+            row.className = 'row';
+            for (let j = 0; j < seatsPerRow; j++) {
+                const seatNumber = i * seatsPerRow + j + 1;
+                const seat = document.createElement('div');
+                seat.className = 'seat';
+                seat.textContent = seatNumber;
+                seat.addEventListener('click', () => handleSeatClick(seat, seatNumber));
+                row.appendChild(seat);
+                seats.push({ seatNumber, seat });
+
+                // Restore seat status from saved data
+                const savedSeat = savedSeatingData.find(s => s.seatNumber === seatNumber);
+                if (savedSeat) {
+                    seat.classList.add('sold');
+                    seat.dataset.owner = savedSeat.owner;
+                }
+            }
+            seating.appendChild(row);
+        }
+
+        function handleSeatClick(seat, seatNumber) {
+            if (!seat.classList.contains('sold')) {
+                seat.classList.add('sold');
+                const owner = prompt('نام صاحب صندلی را وارد کنید:');
+                if (owner) {
+                    seat.dataset.owner = owner;
+                }
+            } else {
+                if (confirm('آیا از حذف بلیط اطمینان دارید؟')) {
+                    seat.classList.remove('sold');
+                    delete seat.dataset.owner;
+                }
+            }
+            saveSeatingData();
+        }
+
+        function saveSeatingData() {
+            const seatingData = seats
+                .filter(({ seat }) => seat.classList.contains('sold'))
+                .map(({ seatNumber, seat }) => ({
+                    seatNumber,
+                    owner: seat.dataset.owner
+                }));
+            localStorage.setItem('seatingData', JSON.stringify(seatingData));
+        }
+
+        function saveToCSV() {
+            let csvContent = 'شماره صندلی,نام صاحب صندلی\n';
+            seats.forEach(({ seatNumber, seat }) => {
+                if (seat.dataset.owner) {
+                    csvContent += `${seatNumber},${seat.dataset.owner}\n`;
+                }
+            });
+            localStorage.setItem('csvData', csvContent);
+            alert('اطلاعات ذخیره شد');
+        }
+
+        function downloadCSV() {
+            const csvContent = localStorage.getItem('csvData');
+            if (!csvContent) {
+                alert('هیچ اطلاعاتی برای دانلود وجود ندارد');
+                return;
+            }
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'seating.csv';
+            link.click();
+        }
+    </script>
+</body>
+</html>
